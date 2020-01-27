@@ -1,0 +1,28 @@
+(!) = heating more than 50°C (SOT23-3)
+(!!) = heating more than 90°C (SOT23-3)
+
+5mm round
+C	U		If	R	PD@7.5V		PD@12V
+R:	2.9-3.4 V	20 mA	35	14-34 mW	104-124 mW
+G:	2.9-3.4 V	20 mA	35	14-34 mW	104-124 mW
+B:	3.0-3.2 V	20 mA	35	22-30 mW	112-120 mW
+
+5mm x 5mm super flux
+C	U		If	R	PD@7.5V		PD@12V
+R:	1.9-2.1 V	20 mA	35	66-74 mW	156-164 mW (!)
+G:	2.8-3.2 V	20 mA	35	22-38 mW	112-128 mW
+B:	2.8-3.2 V	20 mA	35	22-38 mW	112-128 mW
+
+Kingbright 5050 SMD
+C	U		If	R	PD@7.5V		PD@12V
+R:	2.5-3.2 V	50 mA	14	55-125 mW	280-350 mW (!!)
+G:	3.3-4.1 V	30 mA	23	0-27 mW		114-162 mW (!)
+B:	3.5-4.5 V	30 mA	23	0-15 mW		90-150 mW
+
+Moodlight v1.1		Meshlight
+
+    G B R		     R B G
+   R G R G		    B R G R
+  B G B B		   G B X B G
+   B G R		    R G R B
+  R R B G		     G B R
