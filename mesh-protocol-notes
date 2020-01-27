@@ -1,0 +1,13 @@
+Mesh-Payload-Frame:
+- 8-bit R, G, B values per connected node (15 nodes: 15*3=45 Bytes)
+
+Node:
+- Has configured ID -> persistent EEPROM style memory in ESP8266??? (ID 0: server / sender, ID 1..N: nodes)
+- If sender of last color is not more connected or no color was sent, turn black after 2 seconds. Any received color will reset this.
+- If frame received, use color starting at byte (ID - 1)*3, reset 2 seconds counter and note sender MAC or identifier
+
+Server:
+- Everytime (max speed has to be determined) it wants to change the color of one node, it sends N*3 bytes as Mesh-Payload-Frame.
+
+...
+Profit
