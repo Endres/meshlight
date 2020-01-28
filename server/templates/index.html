@@ -66,13 +66,14 @@
 
   function updateData() {
     $.get("/api/get_data").done(function(response) {
+      $("#fps").text(response["fps"]);
       updateCircles(response["pixel_count"]);
       var count = Math.min(response["color_data"].length / 3, $("ul.circle li").length);
       for(var i = 0; i < count; i++) {
         $("ul.circle li").eq(i).text(i + 1);
         var r = response["color_data"][i * 3];
-        var g = response["color_data"][i * 3];
-        var b = response["color_data"][i * 3];
+        var g = response["color_data"][i * 3 + 1];
+        var b = response["color_data"][i * 3 + 2];
         $("ul.circle li").eq(i).css("backgroundColor", "rgb(" + r + "," + g + "," + b + ")");
       }
       setTimeout("updateData();", 50);
@@ -95,8 +96,8 @@
 {% endblock navbar %}
 {% block content %}
     <main role="main" class="container">
-      <div>
-        {{ fps / 60 }}
+      <div id="fps">
+        {{ fps }}
       </div>
       <input id="button1" type="button" value="Button!" class="btn btn-primary">
       <div>

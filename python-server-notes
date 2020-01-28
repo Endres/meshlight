@@ -10,10 +10,9 @@ MeshConnector:
 
 TimeFrameRunner:
   - is effectively an extra thread
-  - maybe needs AsyncIO(???) to exchange data (which animation, RGB output) with flask world
-  - calls animation classes depending on current set animation
+  - calls animation classes depending on currently set animation
   - calculates FPS utilization
-  - given: TARGET_FPS (e.g. 60 FPS)
+  - given: TARGET_FPS (e.g. 10,15,20,60 FPS)
   - if execution of animation (+ tasks afterwards, such as broadcasting via Wi-Fi or updating thread output variables like RGB data and current FPS)
     is slower than 1/TARGET_FPS:
     - run next animation step, but with additional argument "skip=True".
@@ -29,8 +28,9 @@ Animations:
   - get called via TimeFrameRunner, which itself gets information about animation to run by the flask server
   - offer one important function named "frame(data, skip)". data consists of the rather universal I/O content that is processed here
   - the frame function can process the previous data and usually returns the next data (great for Animations!)
-  - usually, because if skip=True, nothing needs to be returned (but for very simple animations, can but will be disused)
+  - usually, because if skip=True, nothing needs to be returned (but for very simple animations, can but will be disposed anyway)
   - furthermore there must be some kind of a FPS base (maybe helpers?) so it can handle its process based on the target FPS rate.
-    - think of a circular animation that turns around once every second (chaser around the round building)
-    - in this case we have 15 spots around the building, so every forth frame the next spot has to get lit, to achieve the target of 60 FPS
+    - think of a circular chaser animation that moves around the whole circle once every second
+    - in this case we have 15 spots around the circle, so every forth frame the next spot has to get lit, to achieve the target of 60 FPS
     - simplest would be to include a frame counter and calculate based on that counter.
+    ! (compare this planning note with the actual implementation of our very first animation, the RGBFader) !
