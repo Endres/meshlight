@@ -27,7 +27,7 @@ class TimeFrameRunner(object):
         global fps, color_data, ajax_requests, pixel_count
         self.running = True
 
-        animation = animations.RGBFader()
+        animation = animations.AnimationCollection()
         skip_frame = False
         time_to_sleep = 0
         time_start = time.time()
@@ -62,11 +62,11 @@ class TimeFrameRunner(object):
                 ajax_requests = 0
 
                 # only for debugging / testing without a real world scenario
-                pixel_count -= 1
+                """pixel_count -= 1
                 del color_data[-3:]
                 if pixel_count == -1:
                     pixel_count = 50
-                    color_data = [0]*(3*pixel_count)
+                    color_data = [0]*(3*pixel_count)"""
 
             time_end = time.time()
             time_to_sleep -= time_end - time_start
