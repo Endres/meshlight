@@ -33,3 +33,9 @@ json format:
 """class tcp(object):
     def encodeNodeId(hwaddr):
         return int.from_bytes(hwaddr[2:], byteorder="big")"""
+
+  - after receiving removing connections, check if there is at least one
+    connection there, if not, try to somehow inform the init_client thread to
+    allow faster reconnection interval, otherwise it seems to need a couple of
+    minutes until the socket finally times out, eventhough there is no
+    connection anymore, and it is known.
