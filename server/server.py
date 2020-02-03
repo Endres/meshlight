@@ -48,7 +48,8 @@ class TimeFrameRunner(object):
             # send to the mesh network, but only if we have something to send
             if not skip_frame and last_color_data != color_data:
                 # testing how much delays by networking functions would affect the other stuff
-                time.sleep(random.uniform(0.01,0.07))
+                #time.sleep(random.uniform(0.01,0.07))
+                pass
             else:
                 #print("nothing sent")
                 pass

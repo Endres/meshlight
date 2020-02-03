@@ -8,6 +8,7 @@
         height: 400px;
         margin: 0 auto;
         list-style-type: none;
+        padding: 32px;
       }
 
       ul.circle li {
@@ -39,8 +40,8 @@
       var pointx  =  Math.floor(Math.cos( theta + angle ) * radius) + radius;
       var pointy  = Math.floor(Math.sin( theta + angle ) * radius) + radius;
 
-      $(this).css("margin-left", pointx + "px");
-      $(this).css("margin-top", pointy + "px");
+      $(this).css("margin-left", pointx - $(selector).width()/2 + "px");
+      $(this).css("margin-top", pointy - $(selector).height()/2 + "px");
     });
   }
 </script>

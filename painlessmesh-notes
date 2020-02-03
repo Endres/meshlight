@@ -1,0 +1,35 @@
+Develop a Python Painlessmesh Library:
+  - User needs to connect to mesh wifi himself (more easy)
+
+init:
+  - lists all wireless network interfaces
+  - tries to connect to the router of each wireless interface to port 5555 tcp
+    - this is the mesh network IP/port combination when communicating with the
+      node, which we participate as client
+  - then we need to exchange single TCP packets containing JSON formatted data,
+    which is the internal painlessmesh protocol
+  - as packets might be lost, we need to care for resending, while TCP seems to
+    not be implemented very good (and still we have multiple parties
+    communicating on the very same wireless channel leading to errors)
+
+json format:
+{
+  "root": boolean,
+  "from": int,
+  "dest": int,
+  "type": int,
+  "subs": [{"nodeId": int, "root": boolean}],
+  "msg": string,
+  # timesync
+  "msg": {
+    "type": int,
+    "t0": int,
+    "t1": int,
+    "t2": int,
+  },
+  "routing": int
+}
+
+"""class tcp(object):
+    def encodeNodeId(hwaddr):
+        return int.from_bytes(hwaddr[2:], byteorder="big")"""
