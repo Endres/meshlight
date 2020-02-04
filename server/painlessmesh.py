@@ -301,21 +301,42 @@ def main():
     global node, port
     node = Node()
     node.node_id = random.randint(0, 0xFFFFFFFF)
-    # print("Node ID: {}".format(node.node_id))
     def on_receive(self, from_, msg):
         print(msg)
     node.on_receive(on_receive)
 
     def task():
         while True:
-            node.mutex.acquire()
-            msg = {
-                "topic": "logNode",
-                "nodeId": node.node_id
-            }
-            node.send_broadcast(msg)
-            node.mutex.release()
-            time.sleep(120)
+            for i in range(1):
+                node.mutex.acquire()
+                msg = "   ~~~"
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.mutex.release()
+                time.sleep(1)
+            for i in range(1):
+                node.mutex.acquire()
+                msg = "~~~   "
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.send_broadcast(msg)
+                node.mutex.release()
+                time.sleep(1)
 
     main_thread = threading.Thread(target=task)
     main_thread.setDaemon(True)
@@ -332,6 +353,10 @@ def main():
                         help="Run in client mode. Need to provide ip of the node to connect to.",
                         type=str)
 
+    parser.add_argument("-i", "--id",
+                        help="Optional Node ID (default is random)",
+                        type=int)
+
     args = parser.parse_args()
 
     if args.verbose:
@@ -340,6 +365,11 @@ def main():
     # Rest is needed to run the server/client. Don't change this unless you
     # know what you are doing
     port = args.port
+
+    if args.id:
+        node.node_id = args.id
+
+    print("Node ID: {}".format(node.node_id))
 
     if args.client:
         node.init_client((args.client, port))
