@@ -6,7 +6,7 @@ from animations import AnimationCollection
 import animations
 import config
 
-import random # debug only, afterwards deterministic
+import socket
 import time
 import threading
 
@@ -32,6 +32,11 @@ class TimeFrameRunner(object):
         time_to_sleep = 0
         time_start = time.time()
 
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.bind(("", 9876))
+
         while self.running:
             self.counter += 1
 
@@ -47,9 +52,7 @@ class TimeFrameRunner(object):
 
             # send to the mesh network, but only if we have something to send
             if not skip_frame and last_color_data != color_data:
-                # testing how much delays by networking functions would affect the other stuff
-                #time.sleep(random.uniform(0.01,0.07))
-                pass
+                sock.sendto(bytes([int(x) for x in color_data]), ("192.168.7.255", 9876))
             else:
                 #print("nothing sent")
                 pass
