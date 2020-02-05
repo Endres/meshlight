@@ -1,5 +1,7 @@
 #include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 
 #define LED_PIN_RED   0
 #define LED_PIN_GREEN 1
@@ -9,6 +11,7 @@
 #define MESH_PASSWORD "this_is_no_internet"
 #define MESH_PORT     9876
 
+#define MESH_TIMEOUT   10000 // in ms; required minimum interval of UDP packets
 #define MESH_IP_OFFSET 10
 #define MESH_MAX_ID    244
 
@@ -45,6 +48,11 @@ void setup() {
   // alternate functions of UART pins
   pinMode(LED_PIN_GREEN, FUNCTION_3);
 
+  // initial value: black
+  digitalWrite(LED_PIN_RED, HIGH);
+  digitalWrite(LED_PIN_GREEN, HIGH);
+  digitalWrite(LED_PIN_BLUE, HIGH);
+
   WiFi.mode(WIFI_STA);
   WiFi.begin(MESH_SSID, MESH_PASSWORD);
 
@@ -53,16 +61,27 @@ void setup() {
   }
 
   IPAddress ip = WiFi.localIP();
-  data_offset = 3 * (ip[3] - MESH_IP_OFFSET);
+  data_offset = 3 * (ip[3] - MESH_IP_OFFSET) + 1;
+
+  ArduinoOTA.onStart([]() {
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "sketch";
+    } else { // U_FS
+      type = "filesystem";
+    }
+  });
+  ArduinoOTA.begin();
 
   udp.begin(MESH_PORT);
 }
 
 void loop() {
-  int size = udp.parsePacket();
-  if (size) {
-    uint8_t red, green, blue;
+  uint8_t red, green, blue;
+  uint8_t timeout_status = 0;
 
+  int size = udp.parsePacket();
+  if (size >= data_offset + 3 && data[0] == 0) {
     udp.read(data, 3 * MESH_MAX_ID);
 
     // TODO: check whether first received or previously configured MAC does match
@@ -74,5 +93,29 @@ void loop() {
     analogWrite(LED_PIN_RED, pwmtable_16[red]);
     analogWrite(LED_PIN_GREEN, pwmtable_16[green]);
     analogWrite(LED_PIN_BLUE, pwmtable_16[blue]);
+
+    last_received = millis();
   }
+
+  if (WiFi.status() != WL_CONNECTED || last_received + MESH_TIMEOUT < millis()) {
+    if (red > 0) { red--; }
+    if (green > 0) { green--; }
+    if (blue > 0) { blue--; }
+
+    if (++timeout_status == 0) {
+      // reconnect actively
+      WiFi.disconnect();
+      setup();
+    } else {
+      delay(20);
+
+      analogWrite(LED_PIN_RED, pwmtable_16[red]);
+      analogWrite(LED_PIN_GREEN, pwmtable_16[green]);
+      analogWrite(LED_PIN_BLUE, pwmtable_16[blue]);
+    }
+  } else {
+    timeout_status = 0;
+  }
+
+  ArduinoOTA.handle();
 }

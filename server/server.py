@@ -37,6 +37,8 @@ class TimeFrameRunner(object):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         sock.bind(("", 9876))
 
+        broadcast_ip = "192.168.7.255"
+
         while self.running:
             self.counter += 1
 
@@ -52,7 +54,8 @@ class TimeFrameRunner(object):
 
             # send to the mesh network, but only if we have something to send
             if not skip_frame and last_color_data != color_data:
-                sock.sendto(bytes([int(x) for x in color_data]), ("192.168.7.255", 9876))
+                sock.sendto(b"\x00" + bytes([int(x) for x in color_data]),
+                    (broadcast_ip, 9876))
             else:
                 #print("nothing sent")
                 pass
