@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from flask import Flask, jsonify, render_template
-from flask_bootstrap import Bootstrap
 
 from animations import AnimationCollection
 import animations
@@ -20,8 +19,18 @@ class TimeFrameRunner(object):
     def __init__(self):
         self.counter = 0
         self.frame_counter = 0
+        self.sock = None
 
-        #self.animation_collection = AnimationCollection()
+    def connect(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.sock.bind(("", 9876))
+
+    def disconnect(self):
+        if self.sock:
+            self.sock.close()
+            self.sock = None
 
     def main(self):
         global fps, color_data, ajax_requests, pixel_count
@@ -31,11 +40,9 @@ class TimeFrameRunner(object):
         skip_frame = False
         time_to_sleep = 0
         time_start = time.time()
+        last_sent = 0
 
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.bind(("", 9876))
+        self.connect()
 
         broadcast_ip = "192.168.7.255"
 
@@ -53,9 +60,19 @@ class TimeFrameRunner(object):
             color_data = animation.frame(color_data, skip=skip_frame)
 
             # send to the mesh network, but only if we have something to send
-            if not skip_frame and last_color_data != color_data:
-                sock.sendto(b"\x00" + bytes([int(x) for x in color_data]),
-                    (broadcast_ip, 9876))
+            if ((not skip_frame and last_color_data != color_data) or
+                    time.time() > last_sent + config.MESH_TIMEOUT):
+                while True:
+                    try:
+                        #self.sock.sendto(
+                        #    b"\x00" + bytes([int(x) for x in color_data]),
+                        #    (broadcast_ip, 9876))
+                        last_sent = time.time()
+                        break
+                    except:
+                        self.disconnect()
+                        time.sleep(1)
+                        self.connect()
             else:
                 #print("nothing sent")
                 pass
@@ -93,7 +110,6 @@ time_frame_thread.setDaemon(True)
 time_frame_thread.start()
 
 app = Flask(__name__)
-Bootstrap(app)
 
 # suppress flooding of AJAX log messages
 import logging
@@ -106,7 +122,7 @@ def request_index():
 
 
 @app.route('/api/get_data')
-def request_colors():
+def request_get_data():
     global ajax_requests
     ajax_requests += 1
     return jsonify({'color_data': color_data, 'pixel_count': pixel_count, 'fps': fps})
