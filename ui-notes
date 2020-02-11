@@ -1,0 +1,9 @@
+Settings Concept:
+  - State machine for setting changing
+    - Live changes vs. "saved" changes
+    - Live changes can be reverted by clicking on "Revert" or leaving the site (unsaved changes warning!)
+    - Saving as well saves a configuration file which is preserved even at server restart
+  - Allow storing current animation options as new sequence step "Add to Sequence"
+  - Setting request different from frame request
+    - Whenever settings are set, store last modification timestamp
+    - after defined setting timout (10 minutes), display modal dialog, whether live settings should be saved, continued to be edited or reverted (discarded)
