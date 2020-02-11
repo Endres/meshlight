@@ -2,6 +2,8 @@
 import config
 import datetime
 from helpers import RGBColor
+import inspect
+import sys
 
 class RGBFader(object):
     # idea of this animation is to specify a time, by which the circle is faded
@@ -50,34 +52,44 @@ class BrightnessFader(object):
         self.i += 1
         return data
 
+#TODO: test / fix this!
+# TODO Fix me -> rather define total duration and set precalculated duration or something, or, better call some setup function for each animation
+"""for class in self.configuration:
+    if class == BrightnessFader:
+        times = datetime.datetime.now().hour % 12
+        if times == 0:
+            times = 12
+        self.configuration[class]["duration"] = 10 * times"""
+class ClockHourBrightnessFader(BrightnessFader):
+    def __init__(self, duration=0):
+        super.__init__()
+        times = datetime.datetime.now().hour % 12
+        if times == 0:
+            times = 12
+        self.finish_duration = 10 * times
+
+def get_animation_classes():
+    exclude_list = [AnimationCollection, RGBColor]
+    return [x[1] for x in inspect.getmembers(sys.modules[__name__], inspect.isclass) if not x[1] in exclude_list]
+
+def get_class_from_animation_name(name):
+    for _class in get_animation_classes():
+        if _class.__name__ == name:
+            return _class
+    return None
+
 class AnimationCollection(object):
-    ANIMATIONS = [RGBFader, BrightnessFader]
-    DEFAULT_CONFIGURATION = [
-        {"duration": 300, "class": RGBFader},
-        {"duration": 20, "class": BrightnessFader}
-    ]
-
     def _load_animation(self):
-        # special case BrightnessFader, shows current time in hours
-        for i in range(len(self.configuration)):
-            if self.configuration[i]["class"] == BrightnessFader:
-                times = datetime.datetime.now().hour % 12
-                if times == 0:
-                    times = 12
-                self.configuration[i]["duration"] = 10 * times
-
-        self.current_animation = self.configuration[self.animation_index]["class"]()
+        self.current_animation = get_class_from_animation_name(
+            self.configuration[self.animation_index]["animation"])()
         self.next_animation_frame = self.configuration[self.animation_index]["duration"] * config.TARGET_FPS
         self.i = 0
 
-    def __init__(self, configuration=DEFAULT_CONFIGURATION, fade_time=3):
+    def __init__(self, configuration=config.DEFAULT_CONFIGURATION, fade_time=3):
         self.configuration = configuration
         self.animation_index = 0
         self._load_animation()
         self.fade_time = fade_time
-
-    def get_animation_list():
-        return [x["class"] for x in AnimationCollection.ANIMATIONS]
 
     def frame(self, data, skip=False):
         data = self.current_animation.frame(data, skip)

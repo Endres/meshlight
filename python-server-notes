@@ -24,6 +24,19 @@ TimeFrameRunner:
     - rest of time until 1/TARGET_FPS is then sleep.
   - interesting: this layer can decide when to broadcast updates (or even intelligently unicast single changes), because it always is in the middle between network and content generation (animations), thus also acts as some kind of frame buffer, yeah! IoT frame buffer! :D
 
+AnimationCollection:
+  - lists all available animations, this is particularly useful for the web interface to be able to select from available animations
+  - in the first version this was also handling the sequencing part (next section), however this should most probably be split up
+  - as the feature set of AnimationCollection is little, this might be just implemented as module methods, or later on can be a whole class (saves resources)
+
+AnimationSequence:
+  - some kind of "auto play" feature
+    - maybe automatically enabled after a specific amount of no user interaction...? (should be also be able to be disabled)
+  - has a list of animations with their respective options that is played back. Options might be set through the web interface.
+  - We definitely need some kind of mode switching between single animation mode and sequence playback in the web interface
+  - eventhough, while playing animations, we can edit parameters of each sequence step
+  - in single mode we are also able to edit the parameters, and probably to add current set to the sequence
+
 Animations:
   - get called via TimeFrameRunner, which itself gets information about animation to run by the flask server
   - offer one important function named "frame(data, skip)". data consists of the rather universal I/O content that is processed here
@@ -34,3 +47,7 @@ Animations:
     - in this case we have 15 spots around the circle, so every forth frame the next spot has to get lit, to achieve the target of 60 FPS
     - simplest would be to include a frame counter and calculate based on that counter.
     ! (compare this planning note with the actual implementation of our very first animation, the RGBFader) !
+  - the init function takes a configuration set (that contains all non-default parameters; what is even default??)
+  - this configuration set is compared against a default configuration set and only changed parametes will be overridden
+  - also, we need to be able to retreive the current configuration set including ranges and parameter types, from this information the web interface options will be generated
+  - and the parameters might be changed on-the-fly
