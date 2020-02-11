@@ -37,6 +37,13 @@ AnimationSequence:
   - eventhough, while playing animations, we can edit parameters of each sequence step
   - in single mode we are also able to edit the parameters, and probably to add current set to the sequence
 
+Events:
+  - there is some kind of event handling, maybe in yet another thread to make it more comfortable
+  - the event queue circles through every current queue element
+  - queue elements are executed once per event class loop (in other words, events with the same event information trigger at the exact same time, so they will be added to the current event queue)
+    - the event class "GeoTimed" typically loops once a day (trigger is the specific time like Sunrise or Sunset)
+    - the event class "Always" loops all over whenever
+
 Animations:
   - get called via TimeFrameRunner, which itself gets information about animation to run by the flask server
   - offer one important function named "frame(data, skip)". data consists of the rather universal I/O content that is processed here
