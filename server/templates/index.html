@@ -67,8 +67,8 @@
     alert("bup");
   });*/
 
-  function updateData() {
-    $.get("/api/get_data").done(function(response) {
+  function updateFrame() {
+    $.get("/api/get_frame").done(function(response) {
       $("#fps").text(response["fps"]);
       updateCircles(response["pixel_count"]);
       var count = Math.min(response["color_data"].length / 3, $("ul.circle li").length);
@@ -79,16 +79,27 @@
         var b = response["color_data"][i * 3 + 2];
         $("ul.circle li").eq(i).css("backgroundColor", "rgb(" + r + "," + g + "," + b + ")");
       }
-      setTimeout("updateData();", 50);
+      setTimeout("updateFrame();", 50);
     }).fail(function() {
       $("ul.circle li").text("?");
+      // TODO: implement same as on arduino, fade to black after some time
+      setTimeout("updateFrame();", 1000);
+    });
+  }
+
+  function updateData() {
+    $.get("/api/get_data").done(function(response) {
+      $("#fps").text(response["fps"]);
       setTimeout("updateData();", 1000);
+    }).fail(function() {
+      // TODO: what to do on fail?
     });
   }
 
   $(document).ready(function() {
     drawCircle("ul.circle li");
     updateData();
+    updateFrame();
     $('input[type="range"]').tooltip().change(function() {
       $(this).prop('data-original-title', $(this).val());
       $(this).prop('title', $(this).val());
@@ -128,6 +139,7 @@
                 <option value="brightnessfader">BrightnessFader</option>
               </select>
             </div>
+            Max FPS, Number of Spots
           </div>
         </div>
         <div class="card mb-3">

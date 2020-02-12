@@ -68,6 +68,54 @@ class ClockHourBrightnessFader(BrightnessFader):
             times = 12
         self.finish_duration = 10 * times
 
+class Treppenblink(object):
+    def __init__(self, framerate=5):
+        self.start = [0, 0, 0]
+        self.last_rgbdots = 0
+        self.count_r = 50 * 256
+        self.count_g = 50 * 256
+        self.count_b = 50 * 256
+        self.framerate = framerate / config.TARGET_FPS
+        self.new_frame = 1
+
+    def frame(self, data, skip=False):
+        rgbdots = len(data) // 3
+
+        if self.last_rgbdots != rgbdots:
+            self.start = [0, rgbdots // 2, rgbdots]
+            self.lightblob = []
+            max_ = rgbdots // 4
+            for i in range(max_):
+                self.lightblob.append((i * 255) // max_)
+            self.lightblob += self.lightblob[::-1]
+            self.last_rgbdots = rgbdots
+
+        if not skip:
+            for i in range(rgbdots):
+                for j in range(3):
+                    if (((rgbdots + i - self.start[j]) % rgbdots) <
+                            len(self.lightblob)):
+                        data[i * 3 + j] = self.lightblob[(rgbdots + i -
+                            self.start[j]) % rgbdots]
+                    else:
+                        data[i * 3 + j] = 0
+
+        if self.new_frame < 1:
+            self.new_frame += self.framerate
+        else:
+            while self.new_frame >= 1:
+                self.count_r = ((self.count_r + 200) + (rgbdots * 256)) % (rgbdots * 256)
+                self.count_b = ((self.count_b + 150) + (rgbdots * 256)) % (rgbdots * 256)
+                self.count_g = ((self.count_g - 175) + (rgbdots * 256)) % (rgbdots * 256)
+
+                self.start[0] = self.count_r >> 8
+                self.start[1] = self.count_b >> 8
+                self.start[2] = self.count_g >> 8
+
+                self.new_frame -= 1
+
+        return data
+
 def get_animation_classes():
     exclude_list = [AnimationCollection, RGBColor]
     return [x[1] for x in inspect.getmembers(sys.modules[__name__], inspect.isclass) if not x[1] in exclude_list]

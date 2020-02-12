@@ -10,8 +10,7 @@ import time
 import threading
 
 fps = config.TARGET_FPS
-pixel_count = 15
-color_data = [0]*(3*pixel_count)
+color_data = [0]*(3*config.PIXEL_COUNT)
 
 ajax_requests = 0
 
@@ -33,7 +32,7 @@ class TimeFrameRunner(object):
             self.sock = None
 
     def main(self):
-        global fps, color_data, ajax_requests, pixel_count
+        global fps, color_data, ajax_requests
         self.running = True
 
         animation = animations.AnimationCollection()
@@ -85,11 +84,11 @@ class TimeFrameRunner(object):
                 ajax_requests = 0
 
                 # only for debugging / testing without a real world scenario
-                """pixel_count -= 1
+                """config.PIXEL_COUNT -= 1
                 del color_data[-3:]
-                if pixel_count == -1:
-                    pixel_count = 50
-                    color_data = [0]*(3*pixel_count)"""
+                if config.PIXEL_COUNT == -1:
+                    config.PIXEL_COUNT = 50
+                    color_data = [0]*(3*config.PIXEL_COUNT)"""
 
             time_end = time.time()
             time_to_sleep -= time_end - time_start
@@ -120,12 +119,21 @@ log.setLevel(logging.ERROR)
 def request_index():
     return render_template("index.html", fps=fps)
 
+@app.route('/api/get_frame')
+def request_get_frame():
+    global ajax_requests
+    ajax_requests += 1
+    return jsonify({'pixel_count': config.PIXEL_COUNT, 'color_data': color_data})
 
 @app.route('/api/get_data')
 def request_get_data():
     global ajax_requests
     ajax_requests += 1
-    return jsonify({'color_data': color_data, 'pixel_count': pixel_count, 'fps': fps})
+    return jsonify({'fps': fps})
+
+@app.route('/api/set_data')
+def request_set_data():
+    pass
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=True, use_reloader=False)
