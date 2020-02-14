@@ -32,10 +32,11 @@ class TimeFrameRunner(object):
             self.sock = None
 
     def main(self):
-        global fps, color_data, ajax_requests
+        global fps, color_data, ajax_requests, sequence
         self.running = True
 
         animation = animations.AnimationCollection()
+        sequence = animations.AnimationSequence()
         skip_frame = False
         time_to_sleep = 0
         time_start = time.time()
@@ -129,7 +130,10 @@ def request_get_frame():
 def request_get_data():
     global ajax_requests
     ajax_requests += 1
-    return jsonify({'fps': fps})
+    return jsonify({
+        'fps': fps,
+        'sequence': sequence.get_sequence_data()
+    })
 
 @app.route('/api/set_data')
 def request_set_data():

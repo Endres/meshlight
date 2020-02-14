@@ -72,7 +72,7 @@
       $("#fps").text(response["fps"]);
       updateCircles(response["pixel_count"]);
       var count = Math.min(response["color_data"].length / 3, $("ul.circle li").length);
-      for(var i = 0; i < count; i++) {
+      for (var i = 0; i < count; i++) {
         $("ul.circle li").eq(i).text(i);
         var r = response["color_data"][i * 3];
         var g = response["color_data"][i * 3 + 1];
@@ -87,9 +87,33 @@
     });
   }
 
+  var option_lang={
+    "duration": "Duration"
+  };
+
+  var sequence_data = null;
+
+  function isEqual(obj1, obj2) {
+    return JSON.stringify(obj1) === JSON.stringify(obj2);
+  }
+
   function updateData() {
     $.get("/api/get_data").done(function(response) {
       $("#fps").text(response["fps"]);
+      if (!isEqual(response["sequence"], sequence_data)) {
+        sequence_data = response["sequence"];
+        console.log(sequence_data);
+        var rows = $.map(sequence_data, function(row) {
+          var active = ("is_active" in row && row["is_active"]);
+          if (active)
+            $("#animation-options").html(row["animation"]);
+          return "<tr><td>" +
+            (active ? "<span>icon</span>" : "") +
+            "</td><td>" + row["animation"] + "</td><td>" + row["duration"] +
+            "</td><td>" + row["event"]["type"] + "</td></tr>";
+        });
+        $("#sequence tbody").html(rows.join(""));
+      }
       setTimeout("updateData();", 1000);
     }).fail(function() {
       // TODO: what to do on fail?
@@ -144,7 +168,7 @@
         </div>
         <div class="card mb-3">
           <div class="card-header">Animation Options (RGBFader)</div>
-          <div class="card-body">
+          <div class="card-body" id="animation-options">
             <label for="rgbfader-duration">Circle Duration</label>
             <input type="range" class="custom-range" id="rgbfader-duration" min="1" max="600" data-toggle="tooltip" title="foo">
           </div>
@@ -168,7 +192,7 @@
               <span aria-hidden="true">&times;</span>
             </button>
           </div>
-          <table class="table table-striped table-hover">
+          <table class="table table-striped table-hover" id="sequence">
             <thead>
               <tr><th></th><th>Animation</th><th>Duration</th><th>Event</th></tr>
             </thead>

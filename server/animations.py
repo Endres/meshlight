@@ -126,6 +126,8 @@ def get_class_from_animation_name(name):
             return _class
     return None
 
+active_index = 0
+
 class AnimationCollection(object):
     def _load_animation(self):
         self.current_animation = get_class_from_animation_name(
@@ -140,6 +142,7 @@ class AnimationCollection(object):
         self.fade_time = fade_time
 
     def frame(self, data, skip=False):
+        global active_index
         data = self.current_animation.frame(data, skip)
         if not skip:
             totalsteps = self.fade_time * config.TARGET_FPS
@@ -153,5 +156,18 @@ class AnimationCollection(object):
             self.animation_index += 1
             if self.animation_index >= len(self.configuration):
                 self.animation_index = 0
+            active_index = self.animation_index
             self._load_animation()
         return data
+
+import copy
+
+class AnimationSequence(object):
+    def __init__(self):
+        self.configuration = config.DEFAULT_CONFIGURATION
+
+    def get_sequence_data(self):
+        sequence_data = copy.deepcopy(self.configuration)
+        if active_index >= 0 and active_index < len(sequence_data):
+            sequence_data[active_index]['is_active'] = True
+        return sequence_data
