@@ -132,6 +132,7 @@ def request_get_data():
     ajax_requests += 1
     return jsonify({
         'fps': fps,
+        'animations': animations.get_animation_configurations(),
         'sequence': sequence.get_sequence_data()
     })
 

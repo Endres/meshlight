@@ -11,6 +11,14 @@ class RGBFader(object):
     # depending on frame counter, config.TARGET_FPS and of course also number of
     # pixels... The beforementioned duration is given as a constructor parameter
 
+    OPTIONS = {
+        "Saturation": [0, 1, 1, "slider-float"],
+        "Lightness": [0, 1, 0.5, "slider-float"],
+        "Duration": [1, 600, 10, "slider-duration"],
+        "Repetitions": [1, 5, 1, "slider-int"],
+        "Framerate": [0, config.TARGET_FPS, config.TARGET_FPS, "slider-int"]
+    }
+
     SATURATION = 1
     LIGHTNESS = 0.5
 
@@ -33,6 +41,13 @@ class RGBFader(object):
         return data
 
 class BrightnessFader(object):
+    OPTIONS = {
+        "Saturation": [ 0, 1, 0, "slider-float"],
+        "Hue": [0, 1, 0, "slider-float"],
+        "Duration": [1, 600, 10, "slider-duration"],
+        "Framerate": [0, config.TARGET_FPS, config.TARGET_FPS, "slider-int"]
+    }
+
     SATURATION = 0
     HUE = 0
 
@@ -69,6 +84,10 @@ class ClockHourBrightnessFader(BrightnessFader):
         self.finish_duration = 10 * times
 
 class Treppenblink(object):
+    OPTIONS = {
+        "Framerate": [0, config.TARGET_FPS, 5, "slider-int"]
+    }
+
     def __init__(self, framerate=5):
         self.start = [0, 0, 0]
         self.last_rgbdots = 0
@@ -86,8 +105,8 @@ class Treppenblink(object):
             self.lightblob = []
             max_ = rgbdots // 4
             for i in range(max_):
-                self.lightblob.append((i * 255) // max_)
-            self.lightblob += self.lightblob[::-1]
+                self.lightblob.append(((i + 1) * 255) // max_)
+            self.lightblob += self.lightblob[-2::-1]
             self.last_rgbdots = rgbdots
 
         if not skip:
@@ -125,6 +144,12 @@ def get_class_from_animation_name(name):
         if _class.__name__ == name:
             return _class
     return None
+
+def get_animation_configurations():
+    configurations = {}
+    for animation in get_animation_classes():
+        configurations[animation.__name__] = animation.OPTIONS
+    return configurations
 
 active_index = 0
 

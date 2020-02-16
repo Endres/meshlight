@@ -1,6 +1,7 @@
 {% extends "bootstrap/base.html" %}
 {%- block styles %}
 {{super()}}
+    <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
     <style>
       ul.circle {
         display: block;
@@ -97,20 +98,65 @@
     return JSON.stringify(obj1) === JSON.stringify(obj2);
   }
 
+  function eventString(e) {
+    if (e["type"] == "Always") {
+      return e["type"];
+    }
+    var s = "";
+    if (e["until_flag"]) { //TODO
+      s = "Until ";
+    }
+    s += e["type"];
+    if (e["params"]) { //TODO
+      s += "(" + e["params"].join(", ") + ")"; // maybe extend to support various formats like hours:minutes etc.
+    }
+    return s;
+  }
+
+  function durationString(d) {
+    var s = [];
+    if (d > 24*60*60) {
+      var n = Math.floor(d / (24*60*60));
+      s.push(n + (n == 1 ? " Day" : " Days"));
+      d = (d % (24*60*60));
+    }
+    if (d > 60*60) {
+      var n = Math.floor(d / (60*60));
+      s.push(n + (n == 1 ? " Hour" : " Hours"));
+      d = (d % (60*60));
+    }
+    if (d > 60) {
+      var n = Math.floor(d / 60);
+      s.push(n + (n == 1 ? " Minute" : " Minutes"));
+      d = (d % 60);
+    }
+    if (d != 0) {
+      s.push(d + (d == 1 ? " Second" : " Seconds"));
+    }
+    if (s.length < 2) {
+      return s[0];
+    } else {
+      s[s.length - 2] += " and " + s.pop();
+      //s[s.length - 1] = "and " + s[s.length - 1];
+    }
+    return s.join(", ");
+  }
+
   function updateData() {
     $.get("/api/get_data").done(function(response) {
       $("#fps").text(response["fps"]);
       if (!isEqual(response["sequence"], sequence_data)) {
         sequence_data = response["sequence"];
-        console.log(sequence_data);
+        //console.log(sequence_data);
         var rows = $.map(sequence_data, function(row) {
           var active = ("is_active" in row && row["is_active"]);
           if (active)
             $("#animation-options").html(row["animation"]);
           return "<tr><td>" +
-            (active ? "<span>icon</span>" : "") +
-            "</td><td>" + row["animation"] + "</td><td>" + row["duration"] +
-            "</td><td>" + row["event"]["type"] + "</td></tr>";
+            (active ? "<i class='fa fa-arrow-right'></i>" : "") +
+            "</td><td>" + row["animation"] + "</td><td>" +
+            durationString(row["duration"]) + "</td><td>" +
+            eventString(row["event"]) + "</td></tr>";
         });
         $("#sequence tbody").html(rows.join(""));
       }
@@ -194,14 +240,9 @@
           </div>
           <table class="table table-striped table-hover" id="sequence">
             <thead>
-              <tr><th></th><th>Animation</th><th>Duration</th><th>Event</th></tr>
+              <tr><th style="width: 32px;"></th><th>Animation</th><th>Duration</th><th>Event</th></tr>
             </thead>
             <tbody>
-              <tr><td>icon</td><td>RGBFader</td><td>10 minutes</td><td>Always</td></tr>
-              <tr><td></td><td>BrightnessFader</td><td>10 seconds</td><td>Always</td></tr>
-              <tr><td></td><td>SunriseFader</td><td>10 minutes</td><td>GeoTimed(Sunrise)</td></tr>
-              <tr><td></td><td>SunsetFader</td><td>10 minutes</td><td>GeoTimed(Sunset)</td></tr>
-              <tr><td></td><td>Blackout</td><td>Until GeoTimed(Sunset)</td><td>GeoTimed(Sunrise)</td></tr>
             </tbody>
           </table>
         </div>
