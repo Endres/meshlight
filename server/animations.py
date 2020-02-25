@@ -136,7 +136,7 @@ class Treppenblink(object):
         return data
 
 def get_animation_classes():
-    exclude_list = [AnimationCollection, RGBColor]
+    exclude_list = [AnimationCollection, AnimationSequence, RGBColor]
     return [x[1] for x in inspect.getmembers(sys.modules[__name__], inspect.isclass) if not x[1] in exclude_list]
 
 def get_class_from_animation_name(name):

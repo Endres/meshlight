@@ -24,6 +24,21 @@
         text-align: center;
         font-size: 2em;
       }
+
+      .range-container {
+        display: block;
+      }
+
+      .range-container .custom-range {
+        width: 85%;
+      }
+
+      .range-container output {
+        width: 15%;
+        text-align: right;
+        display: block;
+        float: right;
+      }
     </style>
 {%- endblock styles %}
 {% block scripts %}
@@ -64,10 +79,6 @@
     }
   }
 
-/*  $("input#button1").click(function() {
-    alert("bup");
-  });*/
-
   function updateFrame() {
     $.get("/api/get_frame").done(function(response) {
       $("#fps").text(response["fps"]);
@@ -88,11 +99,8 @@
     });
   }
 
-  var option_lang={
-    "duration": "Duration"
-  };
-
   var sequence_data = null;
+  var animations = [];
 
   function isEqual(obj1, obj2) {
     return JSON.stringify(obj1) === JSON.stringify(obj2);
@@ -145,13 +153,20 @@
   function updateData() {
     $.get("/api/get_data").done(function(response) {
       $("#fps").text(response["fps"]);
+      if (!isEqual(response["animations"], animations)) {
+        animations = response["animations"];
+        // TODO selected item
+        var options = $.map(animations, function(o, name) {
+          return $("<option />").text(name);
+        });
+        $("#mode").empty().append($("<option />").text("Automatic Mode")).append(options).change();
+      }
       if (!isEqual(response["sequence"], sequence_data)) {
         sequence_data = response["sequence"];
-        //console.log(sequence_data);
         var rows = $.map(sequence_data, function(row) {
           var active = ("is_active" in row && row["is_active"]);
-          if (active)
-            $("#animation-options").html(row["animation"]);
+          //if (active)
+          //  $("#options").html(row["animation"]); // TODO params
           return "<tr><td>" +
             (active ? "<i class='fa fa-arrow-right'></i>" : "") +
             "</td><td>" + row["animation"] + "</td><td>" +
@@ -163,18 +178,90 @@
       setTimeout("updateData();", 1000);
     }).fail(function() {
       // TODO: what to do on fail?
+      setTimeout("updateData();", 1000);
     });
   }
+
+  var option_animation = null;
+
+  function changeOption() {
+    if (!option_animation)
+      return;
+    console.log($(this).attr("data-option"), $(this).val());
+    // TODO send back to server
+  }
+
+  function updateOptions(animation) {
+    $("#options-title").text(animation);
+    option_animation = animation;
+    var option_id = 0;
+    var options = $.map(animations[animation], function(params, option) {
+      var min_value = params[0];
+      var max_value = params[1];
+      var default_value = params[2];
+      var type = params[3];
+
+      var ret = [$("<label />").attr("for", "opt-" + option_id).text(option)];
+
+      switch (type) {
+        case "slider-int":
+        case "slider-duration":
+        case "slider-float":
+        // TODO maybe handle different sliders differently
+        var input = $("<input />").attr("type", "range").
+          addClass("custom-range").attr("id", "opt-" + option_id).
+          attr("min", min_value).attr("max", max_value).val(default_value).
+          attr("data-option", option).change(changeOption).
+          on("input", function() {
+            $("#" + this.id + "-val").val($(this).val());
+          });
+        if (type == "slider-float") {
+          input.attr("step", "0.01");
+        }
+        ret.push($("<div />").addClass("range-container").append(input).
+          append($("<output />").attr("id", "opt-" + option_id + "-val").
+          val(default_value)));
+        break;
+
+        default:
+        ret.push($("<input />").attr("type", "text").addClass("form-control").
+          attr("id", "opt-" + option_id).val(default_value).
+          attr("data-option", option).change(changeOption));
+      }
+
+      option_id ++;
+
+      return ret;
+    });
+    $("#options").empty().append(options);
+  }
+
+  $("#add_sequence").click(function() {
+    if (!option_animation)
+      return;
+    alert("not implemented");
+  });
+
+  $("#mode").change(function() {
+    var new_animation = $(this).val();
+    if (new_animation in animations) {
+      // TODO load config options for single animation, send single animation change
+      updateOptions(new_animation);
+      $("#add_sequence").removeClass("disabled");
+    } else {
+      // Automatic Mode
+      // TODO load config options for current auto animation, send auto animation change
+      option_animation = null;
+      $("#options-title").text("Automatic Mode");
+      $("#options").text("Not implemented");
+      $("#add_sequence").addClass("disabled");
+    }
+  });
 
   $(document).ready(function() {
     drawCircle("ul.circle li");
     updateData();
     updateFrame();
-    $('input[type="range"]').tooltip().change(function() {
-      $(this).prop('data-original-title', $(this).val());
-      $(this).prop('title', $(this).val());
-      $(this).tooltip('show');
-    });
     $('tbody').sortable({
       removeOnSpill: true
     });
@@ -204,22 +291,18 @@
             <div class="form-group">
               <label for="mode">Mode (Auto or Single)</label>
               <select class="custom-select" deluminate_imagetype="unknown" id="mode">
-                <option selected="" value="auto">Automatic Mode</option>
-                <option value="rgbfader">RGBFader</option>
-                <option value="brightnessfader">BrightnessFader</option>
+                <option selected="">Automatic Mode</option>
               </select>
             </div>
-            Max FPS, Number of Spots
+            Max FPS, Number of Spots, Go back to Automatic Mode (on, off)
           </div>
         </div>
         <div class="card mb-3">
-          <div class="card-header">Animation Options (RGBFader)</div>
-          <div class="card-body" id="animation-options">
-            <label for="rgbfader-duration">Circle Duration</label>
-            <input type="range" class="custom-range" id="rgbfader-duration" min="1" max="600" data-toggle="tooltip" title="foo">
+          <div class="card-header">Animation Options (<span id="options-title"></span>)</div>
+          <div class="card-body" id="options">
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary">Add to Sequence</button>
+            <button type="button" class="btn btn-secondary" id="add_sequence">Add to Sequence</button>
           </div>
         </div>
         <div class="w-100 d-none d-sm-block d-md-none"><!-- wrap on sm --></div>
@@ -233,7 +316,7 @@
         <div class="card-header">Automatic Sequence</div>
         <div class="card-body">
           <div class="alert alert-info alert-dismissible fade show" role="alert">
-            Drag to move sequence positions. Drag outside the area to remove the entry.
+            NOT IMPLEMENTED! Drag to move sequence positions. Drag outside the area to remove the entry.
             <button type="button" class="close" data-dismiss="alert" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
