@@ -155,11 +155,11 @@
       $("#fps").text(response["fps"]);
       if (!isEqual(response["animations"], animations)) {
         animations = response["animations"];
-        // TODO selected item
+        mode = "auto"; // TODO
         var options = $.map(animations, function(o, name) {
-          return $("<option />").text(name);
+          return $("<option />").text(name).prop("selected", mode == name);
         });
-        $("#mode").empty().append($("<option />").text("Automatic Mode")).append(options).change();
+        $("#mode").empty().append($("<option />").text("Automatic Mode").prop("selected", mode == "auto")).append(options).change();
       }
       if (!isEqual(response["sequence"], sequence_data)) {
         sequence_data = response["sequence"];
@@ -242,19 +242,40 @@
     alert("not implemented");
   });
 
-  $("#mode").change(function() {
+  function sendApiData(url, data, ttl) {
+    if (!ttl) {
+      ttl = 10;
+    }
+    $.ajax({
+      url: url,
+      type: "POST",
+      data: JSON.stringify(data),
+      contentType: "application/json; charset=utf-8",
+      dataType: "json",
+      error: function() {
+        if (ttl > 1) {
+          setTimeout(function() {sendApiData(url, data, ttl - 1);}, 1000);
+        }
+      }
+    });
+  }
+
+  $("#mode").change(function(e) {
     var new_animation = $(this).val();
     if (new_animation in animations) {
-      // TODO load config options for single animation, send single animation change
+      // load config options for single animation
       updateOptions(new_animation);
       $("#add_sequence").removeClass("disabled");
     } else {
       // Automatic Mode
-      // TODO load config options for current auto animation, send auto animation change
       option_animation = null;
       $("#options-title").text("Automatic Mode");
-      $("#options").text("Not implemented");
+      $("#options").text("Not implemented"); // TODO
       $("#add_sequence").addClass("disabled");
+    }
+    if (e.originalEvent) {
+      // send single / auto animation change
+      sendApiData("/api/set_data", {mode: new_animation in animations ? new_animation : "auto"});
     }
   });
 

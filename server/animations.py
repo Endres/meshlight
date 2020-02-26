@@ -75,13 +75,13 @@ class BrightnessFader(object):
         if times == 0:
             times = 12
         self.configuration[class]["duration"] = 10 * times"""
-class ClockHourBrightnessFader(BrightnessFader):
+"""class ClockHourBrightnessFader(BrightnessFader):
     def __init__(self, duration=0):
         super.__init__()
         times = datetime.datetime.now().hour % 12
         if times == 0:
             times = 12
-        self.finish_duration = 10 * times
+        self.finish_duration = 10 * times"""
 
 class Treppenblink(object):
     OPTIONS = {
@@ -170,10 +170,13 @@ class AnimationCollection(object):
         global active_index
         data = self.current_animation.frame(data, skip)
         if not skip:
+            # this frame modification fades to black between consecutive animations
             totalsteps = self.fade_time * config.TARGET_FPS
             if self.i < totalsteps:
+                # fading in new animation
                 data = [x * self.i / totalsteps for x in data]
             elif self.i >= self.next_animation_frame - totalsteps:
+                # fading out old animation
                 data = [x * (self.next_animation_frame - self.i) / totalsteps
                     for x in data]
         self.i += 1

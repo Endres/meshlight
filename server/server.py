@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 
 from animations import AnimationCollection
 import animations
@@ -11,6 +11,7 @@ import threading
 
 fps = config.TARGET_FPS
 color_data = [0]*(3*config.PIXEL_COUNT)
+auto = animations.AnimationCollection()
 
 ajax_requests = 0
 
@@ -32,10 +33,10 @@ class TimeFrameRunner(object):
             self.sock = None
 
     def main(self):
-        global fps, color_data, ajax_requests, sequence
+        global fps, color_data, ajax_requests, sequence, animation
         self.running = True
 
-        animation = animations.AnimationCollection()
+        animation = auto
         sequence = animations.AnimationSequence()
         skip_frame = False
         time_to_sleep = 0
@@ -136,9 +137,14 @@ def request_get_data():
         'sequence': sequence.get_sequence_data()
     })
 
-@app.route('/api/set_data')
+@app.route('/api/set_data', methods=['POST'])
 def request_set_data():
-    pass
+    content = request.get_json(silent=True)
+    if "mode" in content:
+        class_ = animations.get_class_from_animation_name(content["mode"])
+        global animation
+        animation = class_() if class_ else auto
+    return "{}" # better to return an empty json response than nothing
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=True, use_reloader=False)
