@@ -136,14 +136,18 @@ class Treppenblink(object):
         return data
 
 def get_animation_classes():
-    exclude_list = [AnimationCollection, AnimationSequence, RGBColor]
-    return [x[1] for x in inspect.getmembers(sys.modules[__name__], inspect.isclass) if not x[1] in exclude_list]
+    return [x[1] for x in inspect.getmembers(sys.modules[__name__], inspect.isclass) if not x[1] in _NON_ANIMATIONS]
 
 def get_class_from_animation_name(name):
     for _class in get_animation_classes():
         if _class.__name__ == name:
             return _class
     return None
+
+def get_animation_name_from_class(class_):
+    if not class_ in _NON_ANIMATIONS:
+        return class_.__name__
+    return "auto"
 
 def get_animation_configurations():
     configurations = {}
@@ -199,3 +203,5 @@ class AnimationSequence(object):
         if active_index >= 0 and active_index < len(sequence_data):
             sequence_data[active_index]['is_active'] = True
         return sequence_data
+
+_NON_ANIMATIONS = [AnimationCollection, AnimationSequence, RGBColor]

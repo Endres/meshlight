@@ -117,9 +117,12 @@ import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.ERROR)
 
+import random
+
 @app.route('/')
 def request_index():
-    return render_template("index.html", fps=fps)
+    return render_template("index.html", fps=fps,randint=random.randrange(1,50000))
+    # TODO remove this randint when development is done... or move static script to dynamic, or find another solution
 
 @app.route('/api/get_frame')
 def request_get_frame():
@@ -134,7 +137,8 @@ def request_get_data():
     return jsonify({
         'fps': fps,
         'animations': animations.get_animation_configurations(),
-        'sequence': sequence.get_sequence_data()
+        'sequence': sequence.get_sequence_data(),
+        'mode': animations.get_animation_name_from_class(animation.__class__)
     })
 
 @app.route('/api/set_data', methods=['POST'])

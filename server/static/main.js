@@ -107,9 +107,13 @@ function updateData() {
       animations = response["animations"];
       mode = "auto"; // TODO
       var options = $.map(animations, function(o, name) {
-        return $("<option />").text(name).prop("selected", mode == name);
+        return $("<option />").text(name).prop("selected", response["mode"] == name);
       });
-      $("#mode").empty().append($("<option />").text("Automatic Mode").prop("selected", mode == "auto")).append(options).change();
+      $("#mode").empty().append($("<option />").text("Automatic Mode").prop("selected", response["mode"] == "auto")).append(options).change();
+    } else {
+      $("#mode option").each(function() {
+        $(this).prop("selected", $(this).text() == response["mode"] || (response["mode"] == "auto" && $(this).text() == "Automatic Mode"));
+      });
     }
     if (!isEqual(response["sequence"], sequence_data)) {
       sequence_data = response["sequence"];
