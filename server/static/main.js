@@ -19,7 +19,7 @@ var circleLength = 0;
 function updateCircles(newLength) {
   while (newLength > circleLength) {
     circleLength += 1;
-    $("ul.circle").append($("<li></li>").text(circleLength));
+    $("ul.circle").append($("<li />").text(circleLength));
     drawCircle("ul.circle li");
   }
   while (newLength < circleLength) {
@@ -177,6 +177,13 @@ function updateOptions(animation) {
         val(default_value)));
       break;
 
+      case "color":
+      var color = "rgb(" + default_value[0] + "," + default_value[1] + "," +
+        default_value[2] + ")";
+      ret.push($("<input/>").attr("id", "opt-" + option_id).val(color).
+        addClass("spectrum-color"));
+      break;
+
       default:
       ret.push($("<input />").attr("type", "text").addClass("form-control").
         attr("id", "opt-" + option_id).val(default_value).
@@ -188,6 +195,7 @@ function updateOptions(animation) {
     return ret;
   });
   $("#options").empty().append(options);
+  $("#options .spectrum-color").spectrum({type: "color", showAlpha: false, allowEmpty: false});
 }
 
 $("#add_sequence").click(function() {

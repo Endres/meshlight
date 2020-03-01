@@ -58,3 +58,8 @@ Animations:
   - this configuration set is compared against a default configuration set and only changed parametes will be overridden
   - also, we need to be able to retreive the current configuration set including ranges and parameter types, from this information the web interface options will be generated
   - and the parameters might be changed on-the-fly
+    - that means, range inputs send updated values when the slider is finished moving (i.e. mouseup, keyup event)
+    - color inputs send updated values whenever the color changes (maybe ratelimited)
+  - set_data API request should include a "set_parameters" with relation to which animation should be updated (only current static and sequence entries can be updated), and if sequence entry, the sequence element of the animation sequence
+    - this includes a dict of options that point to the updated values
+  -

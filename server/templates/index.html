@@ -2,6 +2,7 @@
 {%- block styles %}
 {{super()}}
     <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/spectrum-colorpicker2@2.0.0/dist/spectrum.min.css">
     <style>
       ul.circle {
         display: block;
@@ -39,12 +40,17 @@
         display: block;
         float: right;
       }
+
+      .sp-replacer {
+        display: block;
+      }
     </style>
 {%- endblock styles %}
 {% block scripts %}
 {{super()}}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jquery-sortablejs@latest/jquery-sortable.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/spectrum-colorpicker2@2.0.0/dist/spectrum.min.js"></script>
 <script src="{{ url_for('static', filename='main.js') }}?{{ randint }}"></script>
 {% endblock scripts %}
 {% block navbar %}

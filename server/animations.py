@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import collections
 import config
 import datetime
 from helpers import RGBColor
@@ -88,6 +89,7 @@ class Treppenblink(object):
         "Framerate": [0, config.TARGET_FPS, 5, "slider-int"]
     }
 
+
     def __init__(self, framerate=5):
         self.start = [0, 0, 0]
         self.last_rgbdots = 0
@@ -133,6 +135,24 @@ class Treppenblink(object):
 
                 self.new_frame -= 1
 
+        return data
+
+class SingleStaticRGB():
+    OPTIONS = {}
+
+    # TODO optimize the options handling process and as well allow changing the number of pixels and somehow inform the animation classes if they want
+
+    def __init__(self):
+        SingleStaticRGB.OPTIONS = collections.OrderedDict()
+        for i in range(config.PIXEL_COUNT):
+            SingleStaticRGB.OPTIONS["Pixel {:3}".format(i)] = [None, None, RGBColor((255, 0, 0)), "color"]
+
+    def frame(self, data, skip=False):
+        for i in range(len(data) // 3):
+            color = SingleStaticRGB.OPTIONS["Pixel {:3}".format(i)][2]
+            data[i * 3] = color[0]
+            data[i * 3 + 1] = color[1]
+            data[i * 3 + 2] = color[2]
         return data
 
 def get_animation_classes():
