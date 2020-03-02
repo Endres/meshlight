@@ -153,7 +153,7 @@ def request_set_data():
         class_ = animations.get_class_from_animation_name(content["mode"])
         global animation
         animation = class_() if class_ else auto
-    elif "blackout" in content:
+    if "blackout" in content:
         global blackout
         blackout = content["blackout"]
     return "{}" # better to return an empty json response than nothing
