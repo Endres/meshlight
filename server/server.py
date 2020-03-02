@@ -15,6 +15,8 @@ auto = animations.AnimationCollection()
 
 ajax_requests = 0
 
+blackout = config.INITIAL_BLACKOUT
+
 class TimeFrameRunner(object):
     def __init__(self):
         self.counter = 0
@@ -51,23 +53,25 @@ class TimeFrameRunner(object):
             self.counter += 1
 
             # decide wether frameskip is still active
-            time_to_sleep += 1 / config.TARGET_FPS
+            # when blackout, always process a frame only each second
+            time_to_sleep += 1 / (config.TARGET_FPS if not blackout else 1)
             if time_to_sleep > 0:
                 skip_frame = False
                 self.frame_counter += 1
 
             # run animations here
             last_color_data = [] + color_data
-            color_data = animation.frame(color_data, skip=skip_frame)
+            color_data = (animation.frame(color_data, skip=skip_frame) if
+                not blackout else [0] * 3 * config.PIXEL_COUNT)
 
             # send to the mesh network, but only if we have something to send
             if ((not skip_frame and last_color_data != color_data) or
                     time.time() > last_sent + config.MESH_TIMEOUT):
                 while True:
                     try:
-                        #self.sock.sendto(
-                        #    b"\x00" + bytes([int(x) for x in color_data]),
-                        #    (broadcast_ip, 9876))
+                        self.sock.sendto(
+                            b"\x00" + bytes([int(x) for x in color_data]),
+                            (broadcast_ip, 9876))
                         last_sent = time.time()
                         break
                     except:
@@ -138,7 +142,8 @@ def request_get_data():
         'fps': fps,
         'animations': animations.get_animation_configurations(),
         'sequence': sequence.get_sequence_data(),
-        'mode': animations.get_animation_name_from_class(animation.__class__)
+        'mode': animations.get_animation_name_from_class(animation.__class__),
+        'blackout': blackout
     })
 
 @app.route('/api/set_data', methods=['POST'])
@@ -148,6 +153,9 @@ def request_set_data():
         class_ = animations.get_class_from_animation_name(content["mode"])
         global animation
         animation = class_() if class_ else auto
+    elif "blackout" in content:
+        global blackout
+        blackout = content["blackout"]
     return "{}" # better to return an empty json response than nothing
 
 if __name__ == "__main__":

@@ -129,6 +129,7 @@ function updateData() {
       });
       $("#sequence tbody").html(rows.join(""));
     }
+    $("#masterswitch").prop("checked", !response["blackout"]);
     setTimeout("updateData();", 1000);
   }).fail(function() {
     // TODO: what to do on fail?
@@ -238,6 +239,12 @@ $("#mode").change(function(e) {
   if (e.originalEvent) {
     // send single / auto animation change
     sendApiData("/api/set_data", {mode: new_animation in animations ? new_animation : "auto"});
+  }
+});
+
+$("#masterswitch").change(function(e) {
+  if (e.originalEvent) {
+    sendApiData("/api/set_data", {blackout: !$(this).prop("checked")});
   }
 });
 
