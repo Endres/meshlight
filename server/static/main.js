@@ -135,7 +135,6 @@ function updateData() {
     $("#masterswitch").prop("checked", !response["blackout"]);
     setTimeout("updateData();", 1000);
   }).fail(function() {
-    // TODO: what to do on fail?
     setTimeout("updateData();", 1000);
   });
 }
@@ -192,7 +191,6 @@ function updateOptions(animation) {
       case "slider-int":
       case "slider-duration":
       case "slider-float":
-      // TODO maybe handle different sliders differently
       var input = $("<input />").attr("type", "range").
         addClass("custom-range").attr("id", "opt-" + option_id);
       if (type == "slider-float") {
