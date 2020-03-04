@@ -79,6 +79,7 @@ void setup() {
 void loop() {
   uint8_t red, green, blue;
   uint8_t timeout_status = 0;
+  unsigned long last_received;
 
   int size = udp.parsePacket();
   if (size >= data_offset + 3 && data[0] == 0) {
