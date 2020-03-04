@@ -134,6 +134,12 @@ def request_get_frame():
     ajax_requests += 1
     return jsonify({'pixel_count': config.PIXEL_COUNT, 'color_data': color_data})
 
+def buildProperties():
+    if animations.get_animation_name_from_class(animation.__class__) == "auto":
+        # TODO properties of current sequence index
+        pass
+    return animation.properties
+
 @app.route('/api/get_data')
 def request_get_data():
     global ajax_requests
@@ -143,7 +149,8 @@ def request_get_data():
         'animations': animations.get_animation_configurations(),
         'sequence': sequence.get_sequence_data(),
         'mode': animations.get_animation_name_from_class(animation.__class__),
-        'blackout': blackout
+        'blackout': blackout,
+        'properties': buildProperties()
     })
 
 @app.route('/api/set_data', methods=['POST'])
@@ -156,6 +163,22 @@ def request_set_data():
     if "blackout" in content:
         global blackout
         blackout = content["blackout"]
+    if "propertiesTarget" in content and "properties" in content:
+        if animations.get_class_from_animation_name(content["propertiesTarget"]["mode"]):
+            class_ = animations.get_class_from_animation_name(content["propertiesTarget"]["mode"])
+            if animation.__class__ == class_:
+                print("property update")
+                animation.properties.update(content["properties"])
+        else:
+            # auto mode
+            if "sequenceId" in content["propertiesTarget"]:
+                # single sequence entry
+                # TODO handle, also keep sequence order updates etc. in mind
+                pass
+            else:
+                # general auto properties
+                auto.properties.update(content["properties"])
+
     return "{}" # better to return an empty json response than nothing
 
 if __name__ == "__main__":

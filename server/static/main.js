@@ -100,19 +100,22 @@ function durationString(d) {
   return s.join(", ");
 }
 
+var properties = new Object();
+
 function updateData() {
   $.get("/api/get_data").done(function(response) {
     $("#fps").text(response["fps"]);
+    var mode = response["mode"];
+    properties[mode] = response["properties"];
     if (!isEqual(response["animations"], animations)) {
       animations = response["animations"];
-      mode = "auto"; // TODO
       var options = $.map(animations, function(o, name) {
-        return $("<option />").text(name).prop("selected", response["mode"] == name);
+        return $("<option />").text(name).prop("selected", mode == name);
       });
-      $("#mode").empty().append($("<option />").text("Automatic Mode").prop("selected", response["mode"] == "auto")).append(options).change();
+      $("#mode").empty().append($("<option />").text("Automatic Mode").prop("selected", mode == "auto")).append(options).change();
     } else {
       $("#mode option").each(function() {
-        $(this).prop("selected", $(this).text() == response["mode"] || (response["mode"] == "auto" && $(this).text() == "Automatic Mode"));
+        $(this).prop("selected", $(this).text() == mode || (mode == "auto" && $(this).text() == "Automatic Mode"));
       });
     }
     if (!isEqual(response["sequence"], sequence_data)) {
@@ -142,8 +145,30 @@ var option_animation = null;
 function changeOption() {
   if (!option_animation)
     return;
-  console.log($(this).attr("data-option"), $(this).val());
-  // TODO send back to server
+  var properties_ = new Object();
+  var value = $(this).val();
+  switch ($(this).data("type")) {
+    case "slider-float":
+    value = parseFloat(value);
+    break;
+
+    case "slider-duration":
+    case "slider-int":
+    value = parseInt(value);
+    break;
+
+    default:
+  }
+  properties_[$(this).data("option")] = value;
+  var mode = option_animation ? option_animation : "auto";
+  Object.assign(properties[mode], properties_);
+  sendApiData("/api/set_data", {propertiesTarget: {"mode": mode},
+    properties: properties_});
+  // todo unify with rgbcolor
+}
+
+function buildRgbFromArray(arr) {
+  return "rgb(" + arr[0] + "," + arr[1] + "," + arr[2] + ")";
 }
 
 function updateOptions(animation) {
@@ -158,37 +183,41 @@ function updateOptions(animation) {
 
     var ret = [$("<label />").attr("for", "opt-" + option_id).text(option)];
 
+    if (properties[animation] && properties[animation][option]) {
+      default_value = properties[animation][option];
+    }
+
     switch (type) {
+      // todo make sliders configurable if transmission is allowed during drag
       case "slider-int":
       case "slider-duration":
       case "slider-float":
       // TODO maybe handle different sliders differently
       var input = $("<input />").attr("type", "range").
-        addClass("custom-range").attr("id", "opt-" + option_id).
-        attr("min", min_value).attr("max", max_value).val(default_value).
-        attr("data-option", option).change(changeOption).
-        on("input", function() {
-          $("#" + this.id + "-val").val($(this).val());
-        });
+        addClass("custom-range").attr("id", "opt-" + option_id);
       if (type == "slider-float") {
         input.attr("step", "0.01");
       }
+      input.attr("min", min_value).attr("max", max_value).val(default_value).
+        data("option", option).data("type", type).change(changeOption).
+        on("input", function() {
+          $("#" + this.id + "-val").val($(this).val());
+        });
       ret.push($("<div />").addClass("range-container").append(input).
         append($("<output />").attr("id", "opt-" + option_id + "-val").
         val(default_value)));
       break;
 
       case "color":
-      var color = "rgb(" + default_value[0] + "," + default_value[1] + "," +
-        default_value[2] + ")";
+      var color = buildRgbFromArray(default_value);
       ret.push($("<input/>").attr("id", "opt-" + option_id).val(color).
-        addClass("spectrum-color"));
+        addClass("spectrum-color").data("option", option).data("type", type));
       break;
 
       default:
       ret.push($("<input />").attr("type", "text").addClass("form-control").
         attr("id", "opt-" + option_id).val(default_value).
-        attr("data-option", option).change(changeOption));
+        data("option", option).change(changeOption));
     }
 
     option_id ++;
@@ -196,7 +225,20 @@ function updateOptions(animation) {
     return ret;
   });
   $("#options").empty().append(options);
-  $("#options .spectrum-color").spectrum({type: "color", showAlpha: false, allowEmpty: false});
+  $("#options .spectrum-color").spectrum({type: "color", showAlpha: false,
+    allowEmpty: false, move: function(color) {
+      var rgb = color.toRgb();
+      var properties_ = new Object();
+      var value = [rgb.r, rgb.g, rgb.b];
+      if (value == $(this).data("value"))
+        return;
+      $(this).data("value", value);
+      properties_[$(this).data("option")] = value;
+      var mode = option_animation ? option_animation : "auto";
+      Object.assign(properties[mode], properties_);
+      sendApiData("/api/set_data", {propertiesTarget: {"mode": mode},
+        properties: properties_});
+    }});
 }
 
 $("#add_sequence").click(function() {
@@ -235,12 +277,21 @@ $("#mode").change(function(e) {
     $("#options-title").text("Automatic Mode");
     $("#options").text("Not implemented"); // TODO
     $("#add_sequence").addClass("disabled");
+    // TODO auto params
   }
   if (e.originalEvent) {
     // send single / auto animation change
-    sendApiData("/api/set_data", {mode: new_animation in animations ? new_animation : "auto"});
+    var mode = new_animation in animations ? new_animation : "auto";
+    var data = {mode: mode};
+    if (properties[mode]) {
+      data["propertiesTarget"] = {"mode": mode};
+      data["properties"] = properties[mode];
+    }
+    sendApiData("/api/set_data", data);
   }
 });
+
+// TODO: reset button for animations, to reset properties to default entries of options...
 
 $("#masterswitch").change(function(e) {
   if (e.originalEvent) {

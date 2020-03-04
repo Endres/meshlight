@@ -20,23 +20,21 @@ class RGBFader(object):
         "Framerate": [0, config.TARGET_FPS, config.TARGET_FPS, "slider-int"]
     }
 
-    SATURATION = 1
-    LIGHTNESS = 0.5
-
     def __init__(self, duration=10):
+        self.properties = _default_properties(RGBFader)
         self.i = 0
-        self.duration = duration
+        self.properties["Duration"] = duration
 
     def frame(self, data, skip=False):
         if not skip:
             pixels = int(len(data) / 3)
             if pixels == 0:
                 return data
-            totalsteps = self.duration * config.TARGET_FPS
+            totalsteps = self.properties["Duration"] * config.TARGET_FPS
             hue = 1 - (self.i / totalsteps)
             huestep = 1 / pixels
             for i in range(pixels):
-                data[i*3:i*3+3] = RGBColor.from_hls(hue % 1, RGBFader.LIGHTNESS, RGBFader.SATURATION)
+                data[i*3:i*3+3] = RGBColor.from_hls(hue % 1, self.properties["Lightness"], self.properties["Saturation"])
                 hue += huestep
         self.i += 1
         return data
@@ -49,20 +47,18 @@ class BrightnessFader(object):
         "Framerate": [0, config.TARGET_FPS, config.TARGET_FPS, "slider-int"]
     }
 
-    SATURATION = 0
-    HUE = 0
-
     def __init__(self, duration=10):
+        self.properties = _default_properties(BrightnessFader)
         self.i = 0
-        self.duration = duration
+        self.properties["Duration"] = duration
 
     def frame(self, data, skip=False):
         if not skip:
-            totalsteps = self.duration * config.TARGET_FPS
+            totalsteps = self.properties["Duration"] * config.TARGET_FPS
             lightness = (self.i / (totalsteps / 2)) % 1
             if (self.i // (totalsteps / 2)) % 2 == 1:
                 lightness = 1 - lightness
-            color = RGBColor.from_hls(BrightnessFader.HUE, lightness, BrightnessFader.SATURATION)
+            color = RGBColor.from_hls(self.properties["Hue"], lightness, self.properties["Saturation"])
             pixels = int(len(data) / 3)
             data = list(color) * pixels
         self.i += 1
@@ -89,14 +85,14 @@ class Treppenblink(object):
         "Framerate": [0, config.TARGET_FPS, 5, "slider-int"]
     }
 
-
     def __init__(self, framerate=5):
+        self.properties = _default_properties(Treppenblink)
         self.start = [0, 0, 0]
         self.last_rgbdots = 0
         self.count_r = 50 * 256
         self.count_g = 50 * 256
         self.count_b = 50 * 256
-        self.framerate = framerate / config.TARGET_FPS
+        self.properties["Framerate"] = framerate
         self.new_frame = 1
 
     def frame(self, data, skip=False):
@@ -122,7 +118,7 @@ class Treppenblink(object):
                         data[i * 3 + j] = 0
 
         if self.new_frame < 1:
-            self.new_frame += self.framerate
+            self.new_frame += self.properties["Framerate"] / config.TARGET_FPS
         else:
             while self.new_frame >= 1:
                 self.count_r = ((self.count_r + 200) + (rgbdots * 256)) % (rgbdots * 256)
@@ -146,14 +142,18 @@ class SingleStaticRGB():
         SingleStaticRGB.OPTIONS = collections.OrderedDict()
         for i in range(config.PIXEL_COUNT):
             SingleStaticRGB.OPTIONS["Pixel {:3}".format(i)] = [None, None, RGBColor((255, 0, 0)), "color"]
+        self.properties = _default_properties(SingleStaticRGB)
 
     def frame(self, data, skip=False):
         for i in range(len(data) // 3):
-            color = SingleStaticRGB.OPTIONS["Pixel {:3}".format(i)][2]
+            color = self.properties["Pixel {:3}".format(i)]
             data[i * 3] = color[0]
             data[i * 3 + 1] = color[1]
             data[i * 3 + 2] = color[2]
         return data
+
+def _default_properties(class_):
+    return {key: val[2] for key, val in class_.OPTIONS.items()}
 
 def get_animation_classes():
     return [x[1] for x in inspect.getmembers(sys.modules[__name__], inspect.isclass) if not x[1] in _NON_ANIMATIONS]
@@ -185,6 +185,7 @@ class AnimationCollection(object):
         self.i = 0
 
     def __init__(self, configuration=config.DEFAULT_CONFIGURATION, fade_time=3):
+        self.properties = {}
         self.configuration = configuration
         self.animation_index = 0
         self._load_animation()
