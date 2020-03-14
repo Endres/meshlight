@@ -56,21 +56,6 @@ function isEqual(obj1, obj2) {
   return JSON.stringify(obj1) === JSON.stringify(obj2);
 }
 
-function eventString(e) {
-  if (e["type"] == "Always") {
-    return e["type"];
-  }
-  var s = "";
-  if (e["until_flag"]) { //TODO
-    s = "Until ";
-  }
-  s += e["type"];
-  if (e["params"]) { //TODO
-    s += "(" + e["params"].join(", ") + ")"; // maybe extend to support various formats like hours:minutes etc.
-  }
-  return s;
-}
-
 function durationString(d) {
   var s = [];
   if (d > 24*60*60) {
@@ -128,14 +113,13 @@ function updateData() {
           (active ? "<i class='fa fa-arrow-right'></i>" : "") +
           "</td><td>" + row["animation"] + "</td><td>" +
           durationString(row["duration"]) + "</td><td>" +
-          eventString(row["event"]) + "</td></tr>";
+          row["event"] + "</td></tr>";
       });
       $("#sequence tbody").html(rows.join(""));
     }
     $("#masterswitch").prop("checked", !response["blackout"]);
     setTimeout("updateData();", 1000);
   }).fail(function() {
-    // TODO: what to do on fail?
     setTimeout("updateData();", 1000);
   });
 }
@@ -192,7 +176,6 @@ function updateOptions(animation) {
       case "slider-int":
       case "slider-duration":
       case "slider-float":
-      // TODO maybe handle different sliders differently
       var input = $("<input />").attr("type", "range").
         addClass("custom-range").attr("id", "opt-" + option_id);
       if (type == "slider-float") {

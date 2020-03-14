@@ -28,6 +28,7 @@ AnimationCollection:
   - lists all available animations, this is particularly useful for the web interface to be able to select from available animations
   - in the first version this was also handling the sequencing part (next section), however this should most probably be split up
   - as the feature set of AnimationCollection is little, this might be just implemented as module methods, or later on can be a whole class (saves resources)
+  - just deprecate this in favor of static module functions and AnimationSequence!
 
 AnimationSequence:
   - some kind of "auto play" feature
@@ -43,6 +44,70 @@ Events:
   - queue elements are executed once per event class loop (in other words, events with the same event information trigger at the exact same time, so they will be added to the current event queue)
     - the event class "GeoTimed" typically loops once a day (trigger is the specific time like Sunrise or Sunset)
     - the event class "Always" loops all over whenever
+  - TODO: think about some offset which can be provided to allow fading and animation change on point, otherwise it will only trigger the fadeout of the prev. animation!!! inacceptable as when animations with end finish there will be no content that can be provided until fadeout which is boring! if an animation doesn't know when to end, (can be abrupt), this is quite difficult however... maybe animations have to provide something useful even if they have ended (like a loading animation that has finished but still has to wait now for the fadeout to switch, so it simply continues the last few seconds while fading out - at least when the end could not be foreseen)
+  - TODO: also think about the race condition, whenever animations are too short to fully fade in thus overlap with fadeout (fadeout wins after the half of the total animation duration in this case), example:
+
+normal behavior: fadeout and -in between animations whenever the end is
+forseeable
+   0 ends | 1 starts          (duration of 1)          1 ends | 2 starts
+______          __________________________________________          _______...
+      \        /                                          \        /
+       \      /                                            \      /
+   0    \    /                      1                       \    /      2
+         \  /                                                \  /
+          \/                                                  \/
+
+behavior: 1 ends spontaneously but provides some filler animation
+   0 ends | 1 starts                               1 ends |   | 2 starts
+______          __________________________________________          _______...
+      \        /                                          \        /
+       \      /                                           X\      /
+   0    \    /                      1                     XX\    /      2
+         \  /                                             XXX\  /
+          \/                                              XXXX\/
+
+behavior: 1 is shorter than the fading time
+  0 ends | 1 st.en | 2 starts
+______                  _______...
+      \                /
+       \      /\      /
+   0    \    /1 \    /      2
+         \  /    \  /
+          \/      \/
+
+if it cannot provide any filler animation, it at least can decide if the same
+than last or black frames should be used instead
+
+(TODO) wanted behavior: crossfade between animations (forseeable)
+ 0 ends | 1 starts       (duration of 1)        1 ends | 2 starts
+______     __________________________________________     _______...
+      \   /                                          \   /
+       \ /                                            \ /
+   0    X                      1                       X      2
+       / \                                            / \
+      /   \                                          /   \
+
+(spontaneously):
+ 0 ends | 1 starts                            1 ends | | 2 starts
+______     __________________________________________     _______...
+      \   /                                          \   /
+       \ /                                           X\ /
+   0    X                      1                     XX/      2
+       / \                                           X/x\
+      /   \                                          /xxx\
+
+behavior: 1 is shorter than the fading time
+  0 ends | 1 st.en | 2 starts
+______        _______...
+      \      /
+       \ /\ /
+   0    X1 X      2
+       / \/ \
+      /  /\  \
+
+  - solution: some layering with opacity parameter of each animation layer
+
+  - what if animation 2's priority is higher, thus starts even when 1 isn't yet finished?
 
 Animations:
   - get called via TimeFrameRunner, which itself gets information about animation to run by the flask server
@@ -62,4 +127,9 @@ Animations:
     - color inputs send updated values whenever the color changes (maybe ratelimited)
   - set_data API request should include a "set_parameters" with relation to which animation should be updated (only current static and sequence entries can be updated), and if sequence entry, the sequence element of the animation sequence
     - this includes a dict of options that point to the updated values
-  -
+  - animations also can exit, because as of now no animations do exit which will result in indefinite loops when having some kind of a sequence without durations
+    - animations can exit, but do not need to exit. how to fiddle with this? durations!
+    - if a animation is run with "Inifinite" or better "Until End" duration, it will run indefinitely which is no problem
+    - though, a limit can be set with the duration parameter the sequence provides, to limit the time it is run
+    - this most likely has to be handled in the AnimationSequence animation itself, as this has direct access to running animations
+    - if animations wish to exit now (because they don't have any new content to provide), they can somehow set a flag (class variable?)

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from flask import Flask, jsonify, render_template, request
 
-from animations import AnimationCollection
 import animations
 import config
 
@@ -11,7 +10,7 @@ import threading
 
 fps = config.TARGET_FPS
 color_data = [0]*(3*config.PIXEL_COUNT)
-auto = animations.AnimationCollection()
+auto = animations.AnimationSequence()
 
 ajax_requests = 0
 
@@ -35,11 +34,10 @@ class TimeFrameRunner(object):
             self.sock = None
 
     def main(self):
-        global fps, color_data, ajax_requests, sequence, animation
+        global fps, color_data, ajax_requests, animation
         self.running = True
 
         animation = auto
-        sequence = animations.AnimationSequence()
         skip_frame = False
         time_to_sleep = 0
         time_start = time.time()
@@ -147,7 +145,7 @@ def request_get_data():
     return jsonify({
         'fps': fps,
         'animations': animations.get_animation_configurations(),
-        'sequence': sequence.get_sequence_data(),
+        'sequence': auto.get_sequence_data(),
         'mode': animations.get_animation_name_from_class(animation.__class__),
         'blackout': blackout,
         'properties': buildProperties()
