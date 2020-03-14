@@ -6,7 +6,11 @@ from helpers import RGBColor
 import inspect
 import sys
 
-class RGBFader(object):
+class Animation(object):
+    def __init__(self):
+        self.properties = _default_properties(self.__class__)
+
+class RGBFader(Animation):
     # idea of this animation is to specify a time, by which the circle is faded
     # through the whole color spectrum. So we need to calculate every frame,
     # depending on frame counter, config.TARGET_FPS and of course also number of
@@ -21,7 +25,7 @@ class RGBFader(object):
     }
 
     def __init__(self, duration=10):
-        self.properties = _default_properties(RGBFader)
+        super(RGBFader, self).__init__()
         self.i = 0
         self.properties["Duration"] = duration
 
@@ -39,7 +43,7 @@ class RGBFader(object):
         self.i += 1
         return data
 
-class BrightnessFader(object):
+class BrightnessFader(Animation):
     OPTIONS = {
         "Saturation": [ 0, 1, 0, "slider-float"],
         "Hue": [0, 1, 0, "slider-float"],
@@ -48,7 +52,7 @@ class BrightnessFader(object):
     }
 
     def __init__(self, duration=10):
-        self.properties = _default_properties(BrightnessFader)
+        super(BrightnessFader, self).__init__()
         self.i = 0
         self.properties["Duration"] = duration
 
@@ -74,19 +78,19 @@ class BrightnessFader(object):
         self.configuration[class]["duration"] = 10 * times"""
 """class ClockHourBrightnessFader(BrightnessFader):
     def __init__(self, duration=0):
-        super.__init__()
+        super(ClockHourBrightnessFader, self).__init__()
         times = datetime.datetime.now().hour % 12
         if times == 0:
             times = 12
         self.finish_duration = 10 * times"""
 
-class Treppenblink(object):
+class Treppenblink(Animation):
     OPTIONS = {
         "Framerate": [0, config.TARGET_FPS, 5, "slider-int"]
     }
 
     def __init__(self, framerate=5):
-        self.properties = _default_properties(Treppenblink)
+        super(Treppenblink, self).__init__()
         self.start = [0, 0, 0]
         self.last_rgbdots = 0
         self.count_r = 50 * 256
@@ -133,7 +137,7 @@ class Treppenblink(object):
 
         return data
 
-class SingleStaticRGB():
+class SingleStaticRGB(Animation):
     OPTIONS = {}
 
     # TODO optimize the options handling process and as well allow changing the number of pixels and somehow inform the animation classes if they want
@@ -151,6 +155,16 @@ class SingleStaticRGB():
             data[i * 3 + 1] = color[1]
             data[i * 3 + 2] = color[2]
         return data
+
+class Blackout(Animation):
+    OPTIONS = {}
+
+    def __init__(self):
+        super(Blackout, self).__init__()
+
+    def frame(self, data, skip=False):
+        pixels = int(len(data) / 3)
+        return [0]*(3*pixels)
 
 def _default_properties(class_):
     return {key: val[2] for key, val in class_.OPTIONS.items()}
@@ -177,47 +191,25 @@ def get_animation_configurations():
 
 active_index = 0
 
-class AnimationCollection(object):
-    def _load_animation(self):
-        self.current_animation = get_class_from_animation_name(
-            self.configuration[self.animation_index]["animation"])()
-        self.next_animation_frame = self.configuration[self.animation_index]["duration"] * config.TARGET_FPS
-        self.i = 0
-
-    def __init__(self, configuration=config.DEFAULT_CONFIGURATION, fade_time=3):
-        self.properties = {}
-        self.configuration = configuration
-        self.animation_index = 0
-        self._load_animation()
-        self.fade_time = fade_time
-
-    def frame(self, data, skip=False):
-        global active_index
-        data = self.current_animation.frame(data, skip)
-        if not skip:
-            # this frame modification fades to black between consecutive animations
-            totalsteps = self.fade_time * config.TARGET_FPS
-            if self.i < totalsteps:
-                # fading in new animation
-                data = [x * self.i / totalsteps for x in data]
-            elif self.i >= self.next_animation_frame - totalsteps:
-                # fading out old animation
-                data = [x * (self.next_animation_frame - self.i) / totalsteps
-                    for x in data]
-        self.i += 1
-        if self.i >= self.next_animation_frame:
-            self.animation_index += 1
-            if self.animation_index >= len(self.configuration):
-                self.animation_index = 0
-            active_index = self.animation_index
-            self._load_animation()
-        return data
-
 import copy
+import events
 
-class AnimationSequence(object):
-    def __init__(self):
-        self.configuration = config.DEFAULT_CONFIGURATION
+class AnimationSequence(Animation):
+    OPTIONS = {
+        "Fade Time": [0, 20, 3, "slider-float"]
+    }
+
+    EVENT_POLL_INTERVAL = 30 # every n frames check for event updates
+
+    def __init__(self, configuration=config.DEFAULT_CONFIGURATION):
+        super(AnimationSequence, self).__init__()
+        self.configuration = configuration
+        self.animationQueue = []
+        self.nextUpdate = 0
+        self.animation_index = 0
+        self.handleEvents()
+        self.matchAnimationIndexToQueue()
+        self._load_animation()
 
     def get_sequence_data(self):
         sequence_data = copy.deepcopy(self.configuration)
@@ -225,4 +217,97 @@ class AnimationSequence(object):
             sequence_data[active_index]['is_active'] = True
         return sequence_data
 
-_NON_ANIMATIONS = [AnimationCollection, AnimationSequence, RGBColor]
+    def _load_animation(self):
+        self.current_animation = get_class_from_animation_name(
+            self.configuration[self.animation_index]["animation"])()
+        self.next_animation_frame = self.configuration[self.animation_index]["duration"] * config.TARGET_FPS
+        self.i = 0
+
+    def matchAnimationIndexToQueue(self, increase=0):
+        self.animation_index += increase
+        while True:
+            self.animation_index = self.animation_index % len(self.configuration)
+            # increase until found an animation inside
+            if self.configuration[self.animation_index] in self.animationQueue:
+                break
+            self.animation_index += 1
+        global active_index
+        active_index = self.animation_index
+
+    def handleEvents(self):
+        # TODO CLEAN THAT UP OR REIMPLEMENT
+        # find all animations that would trigger right now
+        # add each to the animationQueue
+        # if animationQueue is empty, add "Always" elements
+        # if animationQueue is still empty, do a additional blackout (must be lower priorized than normal blackout...)
+        # take the first element and remove it after it was changed to
+
+        # solve this hassle by using some kind of threads that sleep or fire when events are triggered, and not by polling every second or such.
+        eventList = []
+        for entry in self.configuration:
+            #print("parse events of {}".format(entry["animation"]))
+            parsedEvent = events.parseEventString(entry["event"])
+            #print(parsedEvent)
+            if parsedEvent not in eventList:
+                eventList.append(parsedEvent)
+            parsedEvent = events.parseEventString(entry["until"])
+            #print(parsedEvent)
+            if parsedEvent not in eventList:
+                eventList.append(parsedEvent)
+        #print("different Events:")
+        #print(eventList)
+        #print("check all events that trigger:")
+        # remove Always Event
+        triggeredEvents = [x for x in eventList if x[0].trigger(*x[1]) and x[0].__class__ != events.Always]
+        # TODO somehow sort by event priorities
+        #print(triggeredEvents)
+        # go through events, if is triggered, add to queue
+        # TODO configured events might be in the queue only a single time each, so it is not a queue per-se
+        for entry in self.configuration:
+            if events.parseEventString(entry["event"]) in triggeredEvents:
+                #print("append {}".format(entry))
+                self.animationQueue.append(entry)
+        # go through until events, if until is also triggered, remove animation from queue
+        oldQueue = copy.deepcopy(self.animationQueue)
+        for entry in oldQueue:
+            # TODO animations can also request a removal from the queue, but in this case the until has higher priority!
+            if events.parseEventString(entry["until"]) in triggeredEvents or events.parseEventString(entry["event"])[0].__class__ == events.Always:
+                #print("remove {}".format(entry))
+                self.animationQueue.remove(entry)
+        # if queue is empty, use Always events
+        if not self.animationQueue:
+            self.animationQueue = [x for x in self.configuration if events.parseEventString(x["event"])[0].__class__ == events.Always]
+        # if queue is still empty, fallback to Blackout
+        if not self.animationQueue:
+            self.animationQueue.append({"animation": "Blackout", "duration": 600, "event": "Always", "until": "Always"})
+        #print("====> {}".format(self.animationQueue))
+        # TODO oldquuee DIFFERS???
+        # for now, simply check if current index is still inside queue, so we can set it to the same index, otherwise use 0
+        if self.configuration[self.animation_index] not in self.animationQueue:
+            self.animation_index = 0
+            self.matchAnimationIndexToQueue()
+            self._load_animation()
+
+    def frame(self, data, skip=False):
+        data = self.current_animation.frame(data, skip)
+        if not skip:
+            # this frame modification fades to black between consecutive animations
+            totalsteps = self.properties["Fade Time"] * config.TARGET_FPS
+            if self.i < totalsteps:
+                # fading in new animation
+                data = [x * self.i / totalsteps for x in data]
+            elif self.i >= self.next_animation_frame - totalsteps:
+                # fading out old animation
+                data = [x * (self.next_animation_frame - self.i) / totalsteps
+                    for x in data]
+        self.nextUpdate += 1
+        if self.nextUpdate >= AnimationSequence.EVENT_POLL_INTERVAL:
+            self.nextUpdate = 0
+            self.handleEvents()
+        self.i += 1
+        if self.i >= self.next_animation_frame:
+            self.matchAnimationIndexToQueue(1)
+            self._load_animation()
+        return data
+
+_NON_ANIMATIONS = [Animation, AnimationSequence, RGBColor]
